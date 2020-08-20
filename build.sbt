@@ -25,8 +25,8 @@ val jenaDependency = "org.apache.jena" % "apache-jena-libs" % jenaVersion
 
 libraryDependencies ++= Seq(
   "org.gbif" % "dwca-io" % "2.8" % "compile",
-  "org.gbif" %  "dwc-api" % "1.25" % "compile",
-  "org.gbif" %  "gbif-common" % "0.45" % "compile",
+//  "org.gbif" %  "dwc-api" % "1.25" % "compile",
+//  "org.gbif" %  "gbif-common" % "0.45" % "compile",
   "org.mockito" %  "mockito-core" % "2.8.47" % "test",
   "commons-io" %  "commons-io" % "2.6" % "compile",
   "org.apache.commons" %  "commons-lang3" % "3.9" % "compile",
@@ -35,12 +35,10 @@ libraryDependencies ++= Seq(
   "org.freemarker" %  "freemarker" % "2.3.28" % "compile",
   jenaDependency ,
   "org.slf4j" %  "slf4j-api" % "1.7.25" % "compile",
-  "junit" %  "junit" % "4.12" % "test",
   "ch.qos.logback" %  "logback-classic" % "1.2.3" % "test" ,
   "com.google.guava" % "guava" % guava_version,
 
   "org.scalatest"     %% "scalatest"   % "3.1.0" % Test withSources(),
-  "junit"             %  "junit"       % "4.12"  % Test
 )
 
 Global / onChangedBuildSource := ReloadOnSourceChanges
