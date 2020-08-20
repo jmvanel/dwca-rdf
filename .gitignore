@@ -1,0 +1,31 @@
+.history
+
+*.prefs
+
+/bin
+
+.classpath
+.ensime
+
+logfile.log*
+.cache-main
+.cache-tests
+*.log
+
+*.class
+*.log
+
+# sbt specific
+.cache
+.history
+.lib/
+target/
+
+# Scala-IDE specific
+.scala_dependencies
+.worksheet
+.classpath
+.project
+
+*__
+

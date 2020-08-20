@@ -68,11 +68,11 @@ object DWCA2RDF extends App {
       NodeFactory.createURI(
         makeTaxonURI(value(DwcTerm.nameAccordingTo), value(DwcTerm.taxonID))))
     addPropertyStringObject(
-      dwc + DwcTerm.decimalLongitude.qualifiedName,
+      DwcTerm.decimalLongitude.qualifiedName,
       NodeFactory.createLiteral(
         value(DwcTerm.decimalLongitude)))
     addPropertyStringObject(
-      dwc + DwcTerm.decimalLatitude.qualifiedName,
+      DwcTerm.decimalLatitude.qualifiedName,
       NodeFactory.createLiteral(
         value(DwcTerm.decimalLatitude)))
     processRecordedBy
