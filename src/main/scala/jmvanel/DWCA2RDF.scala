@@ -19,6 +19,8 @@ import org.apache.jena.riot.Lang
 object DWCA2RDF extends App {
   val dsw = "http://purl.org/dsw/"
   val dwc = "http://rs.tdwg.org/dwc/terms/"
+  val dwciri = "http://rs.tdwg.org/dwc/iri/"
+
   val foaf = "http://xmlns.com/foaf/0.1/"
   val foafPerson = foaf + "Person"
   val a = RDF.`type`.asNode()
@@ -27,7 +29,7 @@ object DWCA2RDF extends App {
 
   val class2instancePrefix = Map[String, String](
     // this gbif API is not currently RDF, but it could be made later with JSON-LD :)
-    "http://rs.tdwg.org/dwc/terms/Occurrence" -> "https://api.gbif.org/v1/occurrence/",
+    dwc + "Occurrence" -> "https://api.gbif.org/v1/occurrence/",
     foafPerson -> "https://api.gbif.org/v1/person/" // ???
   )
   val reference2taxonTemplate = Map[String, String](
@@ -62,7 +64,7 @@ object DWCA2RDF extends App {
       a,
       NodeFactory.createURI(rowType().qualifiedName()))
     addPropertyStringObject(
-      (dsw + "toTaxon"),
+      (dwciri + "toTaxon"),
       NodeFactory.createURI(
         makeTaxonURI(value(DwcTerm.nameAccordingTo), value(DwcTerm.taxonID))))
     addPropertyStringObject(
@@ -96,7 +98,7 @@ object DWCA2RDF extends App {
       val personURIrdf = NodeFactory.createURI(
           class2instancePrefix(foafPerson) + personURI)
       addPropertyStringObject(
-        dwc + "identifiedBy",
+        dwciri + "recordedBy", // identifiedBy",
         personURIrdf)
         // println(s"# personMap $personMap put(personName=$personName, personURI=$personURI ; graph.size() ${graph.size()}")
       val alreadyAdded = personMap.put(personName, personURI).isDefined
