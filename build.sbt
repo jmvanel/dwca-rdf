@@ -7,7 +7,7 @@ val gitHubId="gbif/dwca-io"
 
 cancelable := true
 
-developers := List( "http://jmvanel.free.fr/jmv.rdf#me" )
+developers := List( Developer( id="jmvanel", name="Jean-Marc Vanel", email="jeanmarc.vanel@gmail.com", url=new java.net.URL("http://jmvanel.free.fr/jmv.rdf#me")) )
 
 // define the statements initially evaluated when entering 'console', 'console-quick', but not 'console-project'
 initialCommands in console := """
@@ -24,6 +24,7 @@ val jenaVersion =  "3.16.0"
 val jenaDependency = "org.apache.jena" % "apache-jena-libs" % jenaVersion
 
 libraryDependencies ++= Seq(
+  "org.gbif" % "dwca-io" % "2.8" % "compile",
   "org.gbif" %  "dwc-api" % "1.25" % "compile",
   "org.gbif" %  "gbif-common" % "0.45" % "compile",
   "org.mockito" %  "mockito-core" % "2.8.47" % "test",
