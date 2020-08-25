@@ -42,13 +42,16 @@ object DWCA2RDF extends App {
   }
 
   //// start of main() ////
-  val myArchiveFile = Paths.get(args(0)); // "myArchive.zip");
+  val myArchiveFile = Paths.get(args(0));
   val extractToFolder = Paths.get("/tmp/myarchive")
   val dwcArchive = DwcFiles.fromCompressed(myArchiveFile, extractToFolder)
 
   val graph = GraphFactory.createDefaultGraph()
   // Loop over core records and display id, basis of record and scientific name
+  var i = 0
   for (rec <- dwcArchive.getCore().asScala) {
+    if( i == 0 ) println( "# " + rec.terms().asScala.mkString(", ") )
+    i = i+1
 	  // printRecord(rec)
 	  record2RDF(rec, graph)
   }
@@ -65,6 +68,7 @@ object DWCA2RDF extends App {
       NodeFactory.createURI(rowType().qualifiedName()))
     addPropertyStringObject(
       (dwciri + "toTaxon"),
+      // TODO : the taxonID may be absent in given taxonomic registry
       NodeFactory.createURI(
         makeTaxonURI(value(DwcTerm.nameAccordingTo), value(DwcTerm.taxonID))))
     addPropertyStringObject(
@@ -75,6 +79,16 @@ object DWCA2RDF extends App {
       DwcTerm.decimalLatitude.qualifiedName,
       NodeFactory.createLiteral(
         value(DwcTerm.decimalLatitude)))
+    addPropertyStringObject(
+      DwcTerm.scientificName.qualifiedName(),
+      NodeFactory.createLiteral(
+        value(DwcTerm.scientificName)))
+    addPropertyObject(
+      // TODO which RDF property here ? cf https://www.gbif.org/en/article/5i3CQEZ6DuWiycgMaaakCo/gbif-infrastructure-data-processing
+      NodeFactory.createURI("urn:taxonKey"),
+      NodeFactory.createURI(
+          "https://api.gbif.org/v1/species/" +
+          value(GbifTerm.taxonKey) ) )
     processRecordedBy
   }
   def addTriple(subject: Node, property: Node, objet: Node)(implicit graph: Graph) =  graph.add(
