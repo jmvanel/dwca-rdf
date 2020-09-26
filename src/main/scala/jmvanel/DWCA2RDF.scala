@@ -16,7 +16,7 @@ import org.apache.jena.sparql.graph.GraphFactory
 import org.apache.jena.riot.RDFDataMgr
 import org.apache.jena.riot.Lang
 
-  trait DWCA2RDFconstants {
+trait DWCA2RDFconstants {
   val dsw = "http://purl.org/dsw/"
   val dwc = "http://rs.tdwg.org/dwc/terms/"
   val dwciri = "http://rs.tdwg.org/dwc/iri/"
@@ -24,7 +24,7 @@ import org.apache.jena.riot.Lang
   val foaf = "http://xmlns.com/foaf/0.1/"
   val foafPerson = foaf + "Person"
   val a = RDF.`type`.asNode()
-  val foafPersonRDF = NodeFactory.createURI( foafPerson )
+  val foafPersonRDF = NodeFactory.createURI(foafPerson)
   val foafNameRDF = NodeFactory.createURI(foaf + "name")
 
   val class2instancePrefix = Map[String, String](
@@ -33,8 +33,7 @@ import org.apache.jena.riot.Lang
     foafPerson -> "https://api.gbif.org/v1/person/" // ???
   )
   val reference2taxonTemplate = Map[String, String](
-    "TAXREF v12" -> "http://taxref.mnhn.fr/lod/taxon/$1/12.0"
-  )
+    "TAXREF v12" -> "http://taxref.mnhn.fr/lod/taxon/$1/12.0")
 
   val dwcClasses = Seq(
     "PreservedSpecimen",
@@ -46,8 +45,8 @@ import org.apache.jena.riot.Lang
     "MachineObservation",
     "Taxon",
     "Occurrence")
-  val basisOfRecord2Class0 : Map[String, String] =
-     ( dwcClasses.map{ c => (c , dwc + c) } ) . toMap
+  val basisOfRecord2Class0: Map[String, String] =
+    (dwcClasses.map { c => (c, dwc + c) }).toMap
   val basisOfRecord2Class = basisOfRecord2Class0 ++ Map(
     "PRESERVED_SPECIMEN" -> (dwc + "PreservedSpecimen"),
     "FOSSIL_SPECIMEN" -> (dwc + "FossilSpecimen"),
@@ -58,9 +57,11 @@ import org.apache.jena.riot.Lang
     "MACHINE_OBSERVATION" -> (dwc + ""),
     "TAXON" -> (dwc + "Taxon"),
     "OCCURRENCE" -> (dwc + "Occurrence"))
-  }
+}
+
 
 object DWCA2RDF extends App with DWCA2RDFconstants {
+
   def makeTaxonURI( reference: String, id: String) = reference2taxonTemplate(reference).replace("$1", id)
   def rowURI(implicit rec: Record) = {
     import rec._
@@ -81,6 +82,7 @@ object DWCA2RDF extends App with DWCA2RDFconstants {
 	  // printRecord(rec)
 	  record2RDF(rec, graph)
   }
+  addAgentTriples(graph)
   println(s"# graph size ${graph.size()}")
   println(s"# person Map size ${personMap.size}")
   RDFDataMgr.write(System.out, graph, Lang.NTRIPLES)
@@ -122,6 +124,7 @@ object DWCA2RDF extends App with DWCA2RDFconstants {
           value(GbifTerm.taxonKey) ) )
     processRecordedBy
   }
+
   def addTriple(subject: Node, property: Node, objet: Node)(implicit graph: Graph) =  graph.add(
       Triple.create(subject, property, objet))
   def addPropertyObject(property: Node, objet: Node)(implicit rowURIrdf: Node, graph: Graph): Unit =
@@ -132,27 +135,51 @@ object DWCA2RDF extends App with DWCA2RDFconstants {
       addPropertyObject(
         NodeFactory.createURI(property), objet)
 
-  lazy val personMap = scala.collection.mutable.Map[String, String]()
+
+//  lazy val personMap = scala.collection.mutable.Map[String, String]()
+  lazy val personMap = scala.collection.mutable.Set[String]()
   /** process dwc property "recordedBy"
-   *  TODO : it could a foaf:Organization ! . I'll suppose it's per dataset ... */
+   *  TODO (how?) : recordedBy could a foaf:Organization ! . I'll suppose it's per dataset ... */
   def processRecordedBy(implicit rec: Record, graph: Graph, rowURIrdf: Node): Graph = {
     import rec._
     val personName = value(DwcTerm.recordedBy).replace(" (Non renseigné)", "")
     if (personName != null && personName != "") {
-      val personURI = personName.replace(" ", "_").replace(".", "_")
-      val personURIrdf = NodeFactory.createURI(
-          class2instancePrefix(foafPerson) + personURI)
+      val personURIrdf = makepersonURIrdf(personName)
       addPropertyStringObject(
         dwciri + "recordedBy", // identifiedBy",
         personURIrdf)
-        // println(s"# personMap $personMap put(personName=$personName, personURI=$personURI ; graph.size() ${graph.size()}")
-      val alreadyAdded = personMap.put(personName, personURI).isDefined
+//      val alreadyAdded = personMap.put(personName, personURI).isDefined
+      val alreadyAdded = personMap.contains(personName)
+      personMap.add(personName)
       if( ! alreadyAdded ) {
-        addTriple( personURIrdf, a, foafPersonRDF )
-        addTriple( personURIrdf, foafNameRDF, NodeFactory.createLiteral(personName) )
+        println(s"# Adding person '$personName' <$personURIrdf>")
+//        addTriple( personURIrdf, a, foafPersonRDF )
+//        addTriple( personURIrdf, foafNameRDF, NodeFactory.createLiteral(personName) )
       }
     }
     graph
+  }
+
+  /** make person URI as RDF node */
+  def makepersonURIrdf(personName: String): Node = {
+    val personURI = personName.replace(" ", "_").replace(".", "_")
+    NodeFactory.createURI(
+      class2instancePrefix(foafPerson) + personURI)
+  }
+
+  def addAgentTriples(implicit graph: Graph) = {
+//    for ((person, personURI) <- personMap) {
+    for (person <- personMap) {
+      val personURInode = makepersonURIrdf(person)
+      addTriple(
+        personURInode,
+        a,
+        NodeFactory.createURI(foafPerson))
+      addTriple(
+        personURInode,
+        foafNameRDF,
+        NodeFactory.createLiteral(person))
+    }
   }
 
   def printRecord(implicit rec: Record) = {
@@ -169,7 +196,7 @@ object DWCA2RDF extends App with DWCA2RDFconstants {
         ${DwcTerm.decimalLatitude.qualifiedName}> ${value(DwcTerm.decimalLatitude)},
         personName "$personName"
         """
-    // maybe TODO speciesKey taxonKey county eventDate
+    // maybe TODO speciesKey taxonKey county eventDate datasetID institutionCode
     )
   }
 }

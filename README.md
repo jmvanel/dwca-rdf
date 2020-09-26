@@ -29,6 +29,9 @@ https://github.com/jmvanel/rdf-convert/tree/master/gbif.org
 <https://api.gbif.org/v1/occurrence/2487147795> <http://rs.tdwg.org/dwc/iri/toTaxon> <http://taxref.mnhn.fr/lod/taxon/139270/12.0> .
 <https://api.gbif.org/v1/occurrence/2487147795> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://rs.tdwg.org/dwc/terms/Occurrence> .
 <https://api.gbif.org/v1/occurrence/2487147795> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://rs.tdwg.org/dwc/terms/HumanObservation> .
+
+<https://api.gbif.org/v1/person/A_Cl__BOLOMIER_-> <http://xmlns.com/foaf/0.1/name> "A.Cl. BOLOMIER -" .
+<https://api.gbif.org/v1/person/A_Cl__BOLOMIER_-> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Person> .
 ```
 
 NOTES
