@@ -13,7 +13,7 @@ TESTED in Scala REPL with
 runMain jmvanel.DWCA2RDF /home/jmv/data/Biologie/GBIF.org/Flore_Ain_0039246-200613084148143.zip
 ```
 
-See also the JSON-LD project for GBIF.org:
+See also the JSON-LD project for GBIF.org API :
 https://github.com/jmvanel/rdf-convert/tree/master/gbif.org
 
 ## Current result sample
@@ -28,18 +28,24 @@ https://github.com/jmvanel/rdf-convert/tree/master/gbif.org
 <https://api.gbif.org/v1/occurrence/2487147795> <http://rs.tdwg.org/dwc/terms/decimalLongitude> "5.39777" .
 <https://api.gbif.org/v1/occurrence/2487147795> <http://rs.tdwg.org/dwc/iri/toTaxon> <http://taxref.mnhn.fr/lod/taxon/139270/12.0> .
 <https://api.gbif.org/v1/occurrence/2487147795> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://rs.tdwg.org/dwc/terms/Occurrence> .
+<https://api.gbif.org/v1/occurrence/2487147795> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://rs.tdwg.org/dwc/terms/HumanObservation> .
 ```
 
 NOTES
-- I suppose that soon :) the GBIF API URL's will be dereferenceable RDF URI
-- taxonKey is very importnt : it is the global GBIF ID for the taxon; a permanent dereferenceable URI has to be defined
+- I suppose that soon :) the GBIF API URL's will be dereferenceable RDF URI; this gbif API is not currently RDF, but it could be made RDF later with JSON-LD : https://api.gbif.org/v1/occurrence/
+- same for persons, but here I don't know what is the API for persons, if any ; I just used prefix https://api.gbif.org/v1/person/ for now
+- detect if a "recordedBy"  value is a person or an organization is not trivial; I made no attempt yet ...
+- taxonKey is very important : it is the global GBIF ID for the taxon; a permanent dereferenceable URI has to be defined
 - coordinates should be xsd:float's ; same predicates as geo:lat, geo:long
 - the collectors do not AFAIK have a  GBIF ID
-- given "basisOfRecord": "HUMAN_OBSERVATION", the class dwc:HumanObservation should also be assigned
 - "modified" key should be used
 - "identifier" key should be used; is there an API for this ?
 - "eventID" key should be used; is there an API for this ?
 - "nameAccordingTo": "TAXREF v12" was taken for granted; should be processed; case of other taxon registries to study
+- applies a flat RDF structure (except for persons); it's not fully compliant to DSW ... but simple
+
+DONE
+- given "basisOfRecord": "HUMAN_OBSERVATION", the class dwc:HumanObservation should also be assigned
 
 Here is the GBIF API result for this (observation) occurrence
 ```json
@@ -116,6 +122,7 @@ wget -O - https://api.gbif.org/v1/occurrence/2487147795 |jq .
 }
 ```
 
-*Links*
+**Links**
 - https://dwc.tdwg.org/rdf/
+- https://dwc.tdwg.org/terms/
 - http://baskauf.blogspot.com/2019/

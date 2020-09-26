@@ -16,7 +16,7 @@ import org.apache.jena.sparql.graph.GraphFactory
 import org.apache.jena.riot.RDFDataMgr
 import org.apache.jena.riot.Lang
 
-object DWCA2RDF extends App {
+  trait DWCA2RDFconstants {
   val dsw = "http://purl.org/dsw/"
   val dwc = "http://rs.tdwg.org/dwc/terms/"
   val dwciri = "http://rs.tdwg.org/dwc/iri/"
@@ -35,6 +35,32 @@ object DWCA2RDF extends App {
   val reference2taxonTemplate = Map[String, String](
     "TAXREF v12" -> "http://taxref.mnhn.fr/lod/taxon/$1/12.0"
   )
+
+  val dwcClasses = Seq(
+    "PreservedSpecimen",
+    "FossilSpecimen",
+    "LivingSpecimen",
+    "MaterialSample",
+    "Event",
+    "HumanObservation",
+    "MachineObservation",
+    "Taxon",
+    "Occurrence")
+  val basisOfRecord2Class0 : Map[String, String] =
+     ( dwcClasses.map{ c => (c , dwc + c) } ) . toMap
+  val basisOfRecord2Class = basisOfRecord2Class0 ++ Map(
+    "PRESERVED_SPECIMEN" -> (dwc + "PreservedSpecimen"),
+    "FOSSIL_SPECIMEN" -> (dwc + "FossilSpecimen"),
+    "LIVING_SPECIMEN" -> (dwc + "LivingSpecimen"),
+    "MATERIAL_SAMPLE" -> (dwc + "MaterialSample"),
+    "EVENT" -> (dwc + "Event"),
+    "HUMAN_OBSERVATION" -> (dwc + "HumanObservation"),
+    "MACHINE_OBSERVATION" -> (dwc + ""),
+    "TAXON" -> (dwc + "Taxon"),
+    "OCCURRENCE" -> (dwc + "Occurrence"))
+  }
+
+object DWCA2RDF extends App with DWCA2RDFconstants {
   def makeTaxonURI( reference: String, id: String) = reference2taxonTemplate(reference).replace("$1", id)
   def rowURI(implicit rec: Record) = {
     import rec._
@@ -63,7 +89,12 @@ object DWCA2RDF extends App {
   def record2RDF(implicit rec: Record, graph: Graph): Graph = {
     import rec._
     implicit val rowURIrdf = NodeFactory.createURI(rowURI)
-   addPropertyObject(
+    addPropertyObject(
+      a,
+      NodeFactory.createURI(
+        basisOfRecord2Class(
+          value(DwcTerm.basisOfRecord))))
+    addPropertyObject(
       a,
       NodeFactory.createURI(rowType().qualifiedName()))
     addPropertyStringObject(
