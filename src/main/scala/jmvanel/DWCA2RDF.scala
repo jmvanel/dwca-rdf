@@ -32,8 +32,10 @@ trait DWCA2RDFconstants {
     dwc + "Occurrence" -> "https://api.gbif.org/v1/occurrence/",
     foafPerson -> "https://api.gbif.org/v1/person/" // ???
   )
+
   val reference2taxonTemplate = Map[String, String](
     "TAXREF v12" -> "http://taxref.mnhn.fr/lod/taxon/$1/12.0")
+  def reference2taxon(reference: String) = reference2taxonTemplate.getOrElse(reference, "")
 
   val dwcClasses = Seq(
     "PreservedSpecimen",
@@ -62,7 +64,10 @@ trait DWCA2RDFconstants {
 
 object DWCA2RDF extends App with DWCA2RDFconstants {
 
-  def makeTaxonURI( reference: String, id: String) = reference2taxonTemplate(reference).replace("$1", id)
+  def makeTaxonURI( reference: String, id: String) = {
+    // println( s"reference: $reference, id $id")
+    reference2taxon(reference).replace("$1", id)
+    }
   def rowURI(implicit rec: Record) = {
     import rec._
     class2instancePrefix(rowType().qualifiedName()) + id
@@ -95,42 +100,51 @@ object DWCA2RDF extends App with DWCA2RDFconstants {
       a,
       NodeFactory.createURI(
         basisOfRecord2Class(
-          value(DwcTerm.basisOfRecord))))
+          valueNotNull(DwcTerm.basisOfRecord))))
     addPropertyObject(
       a,
       NodeFactory.createURI(rowType().qualifiedName()))
+    // the taxonID may be absent alltogether, or absent in given taxonomic registry
+    val taxonID = valueNotNull(DwcTerm.taxonID)
+    if( taxonID != "")
     addPropertyStringObject(
       (dwciri + "toTaxon"),
-      // TODO : the taxonID may be absent in given taxonomic registry
       NodeFactory.createURI(
-        makeTaxonURI(value(DwcTerm.nameAccordingTo), value(DwcTerm.taxonID))))
+        makeTaxonURI(valueNotNull(DwcTerm.nameAccordingTo), taxonID)) )
     addPropertyStringObject(
       DwcTerm.decimalLongitude.qualifiedName,
       NodeFactory.createLiteral(
-        value(DwcTerm.decimalLongitude)))
+        valueNotNull(DwcTerm.decimalLongitude)))
     addPropertyStringObject(
       DwcTerm.decimalLatitude.qualifiedName,
       NodeFactory.createLiteral(
-        value(DwcTerm.decimalLatitude)))
+        valueNotNull(DwcTerm.decimalLatitude)))
     addPropertyStringObject(
       DwcTerm.scientificName.qualifiedName(),
       NodeFactory.createLiteral(
-        value(DwcTerm.scientificName)))
+        valueNotNull(DwcTerm.scientificName)))
+
+    // taxonKey => <https://api.gbif.org/v1/species/$taxonKey>
     addPropertyObject(
-      // TODO which RDF property here ? cf https://www.gbif.org/en/article/5i3CQEZ6DuWiycgMaaakCo/gbif-infrastructure-data-processing
-      NodeFactory.createURI("urn:taxonKey"),
+      // RDF property here: also toTaxon; cf https://www.gbif.org/en/article/5i3CQEZ6DuWiycgMaaakCo/gbif-infrastructure-data-processing
+      NodeFactory.createURI(  dwciri + "toTaxon" ),
+      // "urn:taxonKey"
       NodeFactory.createURI(
           "https://api.gbif.org/v1/species/" +
-          value(GbifTerm.taxonKey) ) )
+          valueNotNull(GbifTerm.taxonKey) ) )
     processRecordedBy
   }
 
   def addTriple(subject: Node, property: Node, objet: Node)(implicit graph: Graph) =  graph.add(
       Triple.create(subject, property, objet))
+
+  /** add Property & Object to implicit subject */
   def addPropertyObject(property: Node, objet: Node)(implicit rowURIrdf: Node, graph: Graph): Unit =
     addTriple(
         rowURIrdf,
-        property, objet)  
+        property, objet)
+
+  /** add Property (from String) & Object to implicit subject */
   def addPropertyStringObject(property: String, objet: Node)(implicit rowURIrdf: Node, graph: Graph): Unit =
       addPropertyObject(
         NodeFactory.createURI(property), objet)
@@ -140,15 +154,15 @@ object DWCA2RDF extends App with DWCA2RDFconstants {
   lazy val personMap = scala.collection.mutable.Set[String]()
   /** process dwc property "recordedBy"
    *  TODO (how?) : recordedBy could a foaf:Organization ! . I'll suppose it's per dataset ... */
+
   def processRecordedBy(implicit rec: Record, graph: Graph, rowURIrdf: Node): Graph = {
     import rec._
-    val personName = value(DwcTerm.recordedBy).replace(" (Non renseigné)", "")
-    if (personName != null && personName != "") {
+    val personName = valueNotNull(DwcTerm.recordedBy).replace(" (Non renseigné)", "")
+    if (personName != "") {
       val personURIrdf = makepersonURIrdf(personName)
       addPropertyStringObject(
         dwciri + "recordedBy", // identifiedBy",
         personURIrdf)
-//      val alreadyAdded = personMap.put(personName, personURI).isDefined
       val alreadyAdded = personMap.contains(personName)
       personMap.add(personName)
       if( ! alreadyAdded ) {
@@ -184,19 +198,26 @@ object DWCA2RDF extends App with DWCA2RDFconstants {
 
   def printRecord(implicit rec: Record) = {
     import rec._
-    val personName = value(DwcTerm.recordedBy).replace(" - (Non renseigné)", "")
+    val personName = valueNotNull(DwcTerm.recordedBy).replace(" - (Non renseigné)", "")
     println(
       s"""
         <${rowURI}>,
-        taxonID ${value(DwcTerm.taxonID)},
-        <${makeTaxonURI(value(DwcTerm.nameAccordingTo), value(DwcTerm.taxonID))}>
-        occurrenceID ${value(DwcTerm.occurrenceID)},
-        ${value(DwcTerm.scientificName)},
-        ${DwcTerm.decimalLongitude.qualifiedName}> ${value(DwcTerm.decimalLongitude)},
-        ${DwcTerm.decimalLatitude.qualifiedName}> ${value(DwcTerm.decimalLatitude)},
+        taxonID ${valueNotNull(DwcTerm.taxonID)},
+        <${makeTaxonURI(valueNotNull(DwcTerm.nameAccordingTo), valueNotNull(DwcTerm.taxonID))}>
+        occurrenceID ${valueNotNull(DwcTerm.occurrenceID)},
+        ${valueNotNull(DwcTerm.scientificName)},
+        ${DwcTerm.decimalLongitude.qualifiedName}> ${valueNotNull(DwcTerm.decimalLongitude)},
+        ${DwcTerm.decimalLatitude.qualifiedName}> ${valueNotNull(DwcTerm.decimalLatitude)},
         personName "$personName"
         """
     // maybe TODO speciesKey taxonKey county eventDate datasetID institutionCode
     )
+  }
+
+  def valueNotNull(t : Term)(implicit rec: Record) = {
+    import rec._
+    val rawVal = value(t)
+    if(rawVal == null) ""
+    else rawVal
   }
 }
