@@ -79,19 +79,27 @@ object DWCA2RDF extends App with DWCA2RDFconstants {
   val dwcArchive = DwcFiles.fromCompressed(myArchiveFile, extractToFolder)
 
   val graph = GraphFactory.createDefaultGraph()
+  val ntFile = args(0) + ".nt"
+  val fileOutputStream = new FileOutputStream(ntFile)
+  val ntPrinter = new PrintWriter(fileOutputStream)
+
   // Loop over core records and display id, basis of record and scientific name
   var i = 0
   for (rec <- dwcArchive.getCore().asScala) {
-    if( i == 0 ) println( "# " + rec.terms().asScala.mkString(", ") )
+    if( i == 0 ) printToFile( "# " + rec.terms().asScala.mkString(", ") )
     i = i+1
 	  // printRecord(rec)
 	  record2RDF(rec, graph)
   }
   addAgentTriples(graph)
-  println(s"# graph size ${graph.size()}")
-  println(s"# person Map size ${personMap.size}")
-  RDFDataMgr.write(System.out, graph, Lang.NTRIPLES)
+  printToFile(s"# graph size ${graph.size()}")
+  printToFile(s"# person Map size ${personMap.size}")
+  ntPrinter.flush()
+  RDFDataMgr.write(fileOutputStream, graph, Lang.NTRIPLES)
+  println( s"N-TRIPLES file written: '$ntFile'" )
+  ntPrinter.close()
   //// end of main() ////
+
  
   def record2RDF(implicit rec: Record, graph: Graph): Graph = {
     import rec._
@@ -166,7 +174,7 @@ object DWCA2RDF extends App with DWCA2RDFconstants {
       val alreadyAdded = personMap.contains(personName)
       personMap.add(personName)
       if( ! alreadyAdded ) {
-        println(s"# Adding person '$personName' <$personURIrdf>")
+        printToFile(s"# Adding person '$personName' <$personURIrdf>")
 //        addTriple( personURIrdf, a, foafPersonRDF )
 //        addTriple( personURIrdf, foafNameRDF, NodeFactory.createLiteral(personName) )
       }
@@ -196,10 +204,12 @@ object DWCA2RDF extends App with DWCA2RDFconstants {
     }
   }
 
+  def printToFile(s: String) = ntPrinter println(s)
+
   def printRecord(implicit rec: Record) = {
     import rec._
     val personName = valueNotNull(DwcTerm.recordedBy).replace(" - (Non renseigné)", "")
-    println(
+    printToFile(
       s"""
         <${rowURI}>,
         taxonID ${valueNotNull(DwcTerm.taxonID)},
@@ -210,7 +220,7 @@ object DWCA2RDF extends App with DWCA2RDFconstants {
         ${DwcTerm.decimalLatitude.qualifiedName}> ${valueNotNull(DwcTerm.decimalLatitude)},
         personName "$personName"
         """
-    // maybe TODO speciesKey taxonKey county eventDate datasetID institutionCode
+    // maybe TODO speciesKey county eventDate datasetID institutionCode, datasetKey, institutionCode, license
     )
   }
 
