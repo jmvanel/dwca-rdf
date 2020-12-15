@@ -101,9 +101,15 @@ object DWCA2RDF extends App with DWCA2RDFconstants {
   //// end of main() ////
 
  
+  /** DWCA record to RDF
+   *  TODO speciesKey county eventDate datasetID institutionCode, datasetKey, institutionCode, license
+   * les noms géographiques, et la relation avec le dataset , institutionID	, collectionID
+   */
   def record2RDF(implicit rec: Record, graph: Graph): Graph = {
     import rec._
     implicit val rowURIrdf = NodeFactory.createURI(rowURI)
+
+    // rdf:type's
     addPropertyObject(
       a,
       NodeFactory.createURI(
@@ -112,36 +118,35 @@ object DWCA2RDF extends App with DWCA2RDFconstants {
     addPropertyObject(
       a,
       NodeFactory.createURI(rowType().qualifiedName()))
+
     // the taxonID may be absent alltogether, or absent in given taxonomic registry
     val taxonID = valueNotNull(DwcTerm.taxonID)
-    if( taxonID != "")
-    addPropertyStringObject(
-      (dwciri + "toTaxon"),
-      NodeFactory.createURI(
-        makeTaxonURI(valueNotNull(DwcTerm.nameAccordingTo), taxonID)) )
-    addPropertyStringObject(
-      DwcTerm.decimalLongitude.qualifiedName,
-      NodeFactory.createLiteral(
-        valueNotNull(DwcTerm.decimalLongitude)))
-    addPropertyStringObject(
-      DwcTerm.decimalLatitude.qualifiedName,
-      NodeFactory.createLiteral(
-        valueNotNull(DwcTerm.decimalLatitude)))
-    addPropertyStringObject(
-      DwcTerm.scientificName.qualifiedName(),
-      NodeFactory.createLiteral(
-        valueNotNull(DwcTerm.scientificName)))
+    if (taxonID != "") {
+      addPropertyStringObject(
+        (dwciri + "toTaxon"),
+        NodeFactory.createURI(
+          makeTaxonURI(valueNotNull(DwcTerm.nameAccordingTo), taxonID)))
+    }
+    import DwcTerm._
+    addLiteralTriple(decimalLongitude)
+    addLiteralTriple(decimalLatitude)
+    addLiteralTriple(scientificName)
 
     // taxonKey => <https://api.gbif.org/v1/species/$taxonKey>
     addPropertyObject(
-      // RDF property here: also toTaxon; cf https://www.gbif.org/en/article/5i3CQEZ6DuWiycgMaaakCo/gbif-infrastructure-data-processing
+      // RDF property here: also dwci:toTaxon; cf https://www.gbif.org/en/article/5i3CQEZ6DuWiycgMaaakCo/gbif-infrastructure-data-processing
       NodeFactory.createURI(  dwciri + "toTaxon" ),
-      // "urn:taxonKey"
       NodeFactory.createURI(
           "https://api.gbif.org/v1/species/" +
           valueNotNull(GbifTerm.taxonKey) ) )
     processRecordedBy
   }
+
+  /** add Literal Triple, directly from TDWG vocab' */
+  def addLiteralTriple(t: Term)(implicit rowURIrdf: Node, rec: Record, graph: Graph) =
+    addPropertyStringObject(
+      t . qualifiedName,
+      NodeFactory.createLiteral( valueNotNull(t)))
 
   def addTriple(subject: Node, property: Node, objet: Node)(implicit graph: Graph) =  graph.add(
       Triple.create(subject, property, objet))
@@ -220,7 +225,6 @@ object DWCA2RDF extends App with DWCA2RDFconstants {
         ${DwcTerm.decimalLatitude.qualifiedName}> ${valueNotNull(DwcTerm.decimalLatitude)},
         personName "$personName"
         """
-    // maybe TODO speciesKey county eventDate datasetID institutionCode, datasetKey, institutionCode, license
     )
   }
 
