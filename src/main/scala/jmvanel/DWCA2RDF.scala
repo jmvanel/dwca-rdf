@@ -20,16 +20,27 @@ trait DWCA2RDFconstants {
   val dsw = "http://purl.org/dsw/"
   val dwc = "http://rs.tdwg.org/dwc/terms/"
   val dwciri = "http://rs.tdwg.org/dwc/iri/"
+  val apiPrefix = "https://api.gbif.org/v1/"
 
   val foaf = "http://xmlns.com/foaf/0.1/"
   val foafPerson = foaf + "Person"
   val a = RDF.`type`.asNode()
   val foafPersonRDF = NodeFactory.createURI(foafPerson)
   val foafNameRDF = NodeFactory.createURI(foaf + "name")
+  val dcatDataset = "http://www.w3.org/ns/dcat#Dataset"
+  // rdfs:isDefinedBy
+  val isDefinedBy = "http://www.w3.org/2000/01/rdf-schema#isDefinedBy"
 
+  /** Map from class URI to instance Prefix
+   *  TODO: not sure what to do with foaf:Person's from literal's:
+   *  which URI ? */
   val class2instancePrefix = Map[String, String](
     // this gbif API is not currently RDF, but it could be made later with JSON-LD :)
-    dwc + "Occurrence" -> "https://api.gbif.org/v1/occurrence/",
+    dwc + "Occurrence" -> (apiPrefix + "occurrence/") ,
+    dwc + "Taxon" -> (apiPrefix + "species/") ,
+    dcatDataset -> (apiPrefix + "dataset/") ,
+    dwc + "" -> (apiPrefix + "/") ,
+
     foafPerson -> "https://api.gbif.org/v1/person/" // ???
   )
 
@@ -56,7 +67,7 @@ trait DWCA2RDFconstants {
     "MATERIAL_SAMPLE" -> (dwc + "MaterialSample"),
     "EVENT" -> (dwc + "Event"),
     "HUMAN_OBSERVATION" -> (dwc + "HumanObservation"),
-    "MACHINE_OBSERVATION" -> (dwc + ""),
+    "MACHINE_OBSERVATION" -> (dwc + "MachineObservation"),
     "TAXON" -> (dwc + "Taxon"),
     "OCCURRENCE" -> (dwc + "Occurrence"))
 }
@@ -68,6 +79,8 @@ object DWCA2RDF extends App with DWCA2RDFconstants {
     // println( s"reference: $reference, id $id")
     reference2taxon(reference).replace("$1", id)
     }
+
+  /** compute row RDF URI */
   def rowURI(implicit rec: Record) = {
     import rec._
     class2instancePrefix(rowType().qualifiedName()) + id
@@ -77,7 +90,7 @@ object DWCA2RDF extends App with DWCA2RDFconstants {
   val myArchiveFile = Paths.get(args(0));
   val extractToFolder = Paths.get("/tmp/myarchive")
   val dwcArchive = DwcFiles.fromCompressed(myArchiveFile, extractToFolder)
-
+//  println( "dwcArchive.getMetadata " + dwcArchive.getMetadata )
   val graph = GraphFactory.createDefaultGraph()
   val ntFile = args(0) + ".nt"
   val fileOutputStream = new FileOutputStream(ntFile)
@@ -102,8 +115,9 @@ object DWCA2RDF extends App with DWCA2RDFconstants {
 
  
   /** DWCA record to RDF
-   *  TODO speciesKey county eventDate datasetID institutionCode, datasetKey, institutionCode, license
-   * les noms géographiques, et la relation avec le dataset , institutionID	, collectionID
+   *  TODO speciesKey datasetID license, institutionID, collectionID
+   *  DONE institutionCode, datasetKey,
+   * les noms géographiques, la relation avec le dataset
    */
   def record2RDF(implicit rec: Record, graph: Graph): Graph = {
     import rec._
@@ -131,6 +145,24 @@ object DWCA2RDF extends App with DWCA2RDFconstants {
     addLiteralTriple(decimalLongitude)
     addLiteralTriple(decimalLatitude)
     addLiteralTriple(scientificName)
+    addLiteralTriple(eventDate)
+    addLiteralTriple(countryCode)
+    addLiteralTriple(stateProvince)
+    addLiteralTriple(county)
+    addLiteralTriple(municipality)
+    addLiteralTriple(locality)
+    addLiteralTriple(institutionCode)
+    addLiteralTriple(collectionCode)
+    addLiteralTriple(datasetName)
+
+    val datasetKey = valueNotNull(GbifTerm.datasetKey)
+    if (datasetKey != "")
+      addPropertyStringObject(
+        isDefinedBy,
+        NodeFactory.createURI(
+          apiPrefix + "dataset/" + datasetKey))
+
+    // addLiteralTriple(license)
 
     // taxonKey => <https://api.gbif.org/v1/species/$taxonKey>
     addPropertyObject(
@@ -143,10 +175,13 @@ object DWCA2RDF extends App with DWCA2RDFconstants {
   }
 
   /** add Literal Triple, directly from TDWG vocab' */
-  def addLiteralTriple(t: Term)(implicit rowURIrdf: Node, rec: Record, graph: Graph) =
-    addPropertyStringObject(
-      t . qualifiedName,
-      NodeFactory.createLiteral( valueNotNull(t)))
+  def addLiteralTriple(t: Term)(implicit rowURIrdf: Node, rec: Record, graph: Graph): Unit = {
+    val value = valueNotNull(t)
+    if (value != "")
+      addPropertyStringObject(
+        t.qualifiedName,
+        NodeFactory.createLiteral(value))
+  }
 
   def addTriple(subject: Node, property: Node, objet: Node)(implicit graph: Graph) =  graph.add(
       Triple.create(subject, property, objet))
